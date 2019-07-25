@@ -1,10 +1,10 @@
-# Load packages
+# Load global packages
 import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
-# Configure global parameters
-REPEC_FTP = 'ftp://all.repec.org/RePEc/all/'
+# Load local packages
+import settings
 
 # ReDIF functions
 
@@ -94,7 +94,7 @@ def print_errors(inlist, outlist):
 def archive_url(archive):
     '''Get a single archive url'''
     try:
-        rdf = redif_load(redif_decode(ftp_get(REPEC_FTP + archive)))
+        rdf = redif_load(redif_decode(ftp_get(settings.repec_ftp + archive)))
         rdf = dict(rdf[0])
         return (rdf['handle'], rdf['url'])
     except:
@@ -119,7 +119,7 @@ def series_url(series, archives):
         a, sep, s = series.rpartition(':')
         return archives[a.lower()].rstrip('/') + '/' + s + '/'
     try:
-        rdf = redif_load(redif_decode(ftp_get(REPEC_FTP + series)))
+        rdf = redif_load(redif_decode(ftp_get(settings.repec_ftp + series)))
         links = list(set(dict(s)['handle'] for s in rdf))
         return [url(s) for s in links]
     except:
@@ -140,7 +140,7 @@ def series_all(files, archives, threads = 32):
 
 def remotes():
     '''Get a list of all remote directories with ReDIF documents'''
-    files = ftp_ls(REPEC_FTP)
+    files = ftp_ls(settings.repec_ftp)
     archives = archive_all(files)
     series = series_all(files, archives)
     return series

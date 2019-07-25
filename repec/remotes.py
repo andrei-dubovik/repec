@@ -1,4 +1,4 @@
-# Load packages
+# Load global packages
 import re
 import subprocess
 from urllib.parse import urlparse, urljoin
@@ -9,10 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 import pickle
 
-# Masquerading as Chrome, otherwise some sites refuse connection
-HTTP_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36'
-}
+# Load local packages
+import settings
 
 def silent(func):
     '''A wrapper that suppresses errors'''
@@ -34,7 +32,8 @@ def listing_ftp(url):
 
 def listing_http(url):
     try:
-        response = requests.get(url, timeout = 300, headers = HTTP_HEADERS)
+        headers = {'User-Agent': settings.user_agent}
+        response = requests.get(url, timeout = 300, headers = headers)
     except requests.exceptions.ConnectionError as err:
         if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
             err.args = ('Max retries exceeded', )
