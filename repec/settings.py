@@ -1,6 +1,7 @@
 # Global configuration
 database = 'repec.db'
 repec_ftp = 'ftp://all.repec.org/RePEc/all/'
+timeout = 300 # seconds
 
 # Masquerading as Chrome, otherwise some sites refuse connection
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'

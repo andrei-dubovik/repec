@@ -5,24 +5,15 @@ from urllib.parse import urlparse, urljoin
 import requests
 from lxml import etree
 import random
-from concurrent.futures import ThreadPoolExecutor
-from collections import Counter
-import pickle
+from threading import Lock
 
 # Load local packages
 import settings
-
-def silent(func):
-    '''A wrapper that suppresses errors'''
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as err:
-            return str(err)
-    return wrapper
+from misc import iserror, silent, parallel
 
 def listing_ftp(url):
-    rslt = subprocess.run(['curl', '-lsm 300', url], stdout = subprocess.PIPE)
+    cmd = ['curl', '-lsm {}'.format(settings.timeout), url]
+    rslt = subprocess.run(cmd, stdout = subprocess.PIPE)
     if rslt.returncode != 0:
         raise RuntimeError('CURL Error {}'.format(rslt.returncode))
     files = rslt.stdout.decode().splitlines()
@@ -33,7 +24,7 @@ def listing_ftp(url):
 def listing_http(url):
     try:
         headers = {'User-Agent': settings.user_agent}
-        response = requests.get(url, timeout = 300, headers = headers)
+        response = requests.get(url, timeout = settings.timeout, headers = headers)
     except requests.exceptions.ConnectionError as err:
         if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
             err.args = ('Max retries exceeded', )
@@ -62,28 +53,37 @@ def listing(url):
         raise RuntimeError('Empty listing')
     return files
 
-def meter(it, it_len):
-    '''Progress meter'''
-    for i, el in enumerate(it):
-        print('[{}/{}]'.format(i + 1, it_len), end = '\r')
-        yield el
+def update_listings_1(conn, url):
+    files = listing(url)
+    with Lock():
+        c = conn.cursor()
+        if iserror(files):
+            c.execute('UPDATE remotes SET status = 2, error = ? WHERE url = ?', (str(files), url))
+        else:
+            files = [(f, url) for f in files]
+            c.execute('UPDATE remotes SET status = 0 WHERE url = ?', (url, ))
+            c.executemany('REPLACE INTO listings (url, remote) VALUES (?, ?)', files)
+        c.close()
+    return not iserror(files)
 
-def update_listings(urls, threads = 32):
-    '''Redownload missing urls'''
-    old_count = sum(1 for v in urls.values() if type(v) == str)
-    keys = list(k for k, v in urls.items() if type(v) == str)
-    keys = random.sample(keys, k = len(keys)) # To redistribute load
-    print('Updating listings')
-    with ThreadPoolExecutor(max_workers = threads) as executor:
-        listings = list(meter(executor.map(listing, keys), len(keys)))
-    for k, v in zip(keys, listings):
-        urls[k] = v
-    new_count = sum(1 for v in urls.values() if type(v) == str)
-    print('{} updated, {} missing'.format(old_count - new_count, new_count))
+def update_listings(conn, status = 1, threads = 32):
+    '''Update remote listings'''
+    c = conn.cursor()
+    c.execute('SELECT url FROM remotes WHERE status = ?', (status, ))
+    urls = [r[0] for r in c.fetchall()]
+    urls = random.sample(urls, k = len(urls)) # To redistribute load
+    c.close()
+    print('Updating remote listings...')
+    status = parallel(lambda u: update_listings_1(conn, u), urls)
+    print('{} out of {} records updated successfully'.format(sum(status), len(urls)))
 
-def all_listings(urls):
-    '''Get a list of all available ReDIF files'''
-    urls = {url:'Not processed' for url in urls}
-    update_listings(urls)
-    #errors = Counter(v for v in urls.values() if type(v) == str)
-    return [u for f in urls.values() if type(f) == list for u in f]
+def update():
+    '''Update remote listings (wrapper)'''
+    conn = sqlite3.connect(settings.database, check_same_thread = False)
+    try:
+        update_listings(conn)
+    except:
+        conn.rollback()
+    else:
+        conn.commit()
+    conn.close()
