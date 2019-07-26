@@ -66,7 +66,7 @@ def load(file, cat):
         return (file, cat, r['handle'], url)
     return [key(r) for r in rdf]
 
-def update_file(conn, file, cat):
+def update_series_1(conn, file, cat):
     '''Update the database for a series or an archive file'''
     r = load(file, cat)
     with Lock():
@@ -86,7 +86,7 @@ def update_series(conn, status = 1, threads = 32):
     files = c.fetchall()
     c.close()
     print('Updating archive and series files...')
-    status = parallel(lambda el: update_file(conn, *el), files)
+    status = parallel(lambda el: update_series_1(conn, *el), files)
     print('{} out of {} records updated successfully'.format(sum(status), len(files)))
 
 def update_remotes(conn, status = 1):
