@@ -1,7 +1,7 @@
 # Load global packages
 import re
 import subprocess
-from threading import Lock
+import threading
 import sqlite3
 from urllib.parse import urlparse
 from datetime import datetime
@@ -9,17 +9,7 @@ from datetime import datetime
 # Load local packages
 import settings
 import redif
-from misc import iserror, silent, parallel
-
-# Utility functions
-
-def collect(lst):
-    '''Collect a list of key, value pairs into a dictionary'''
-    dct = {}
-    for k, v in lst:
-        vv = dct.setdefault(k, [])
-        vv.append(v)
-    return dct
+from misc import iserror, silent, parallel, collect
 
 # RePEc FTP is broken; using curl as a workaround
 
@@ -66,27 +56,27 @@ def load(file, cat):
         return (file, cat, r['handle'], url)
     return [key(r) for r in rdf]
 
-def update_series_1(conn, file, cat):
+def update_series_1(conn, lock, file, cat):
     '''Update the database for a series or an archive file'''
     r = load(file, cat)
-    with Lock():
+    with lock:
         c = conn.cursor()
         if iserror(r):
             c.execute('UPDATE repec SET status = 2, error = ? WHERE file = ?', (str(r), file))
         else:
-            c.execute('UPDATE repec SET status = 0 WHERE file = ?', (file, ))
+            c.execute('UPDATE repec SET status = 0, error = NULL WHERE file = ?', (file, ))
             c.executemany('REPLACE INTO series (file, type, handle, url) VALUES (?, ?, ?, ?)', r)
         c.close()
     return not iserror(r)
 
-def update_series(conn, status = 1, threads = 32):
+def update_series(conn, lock, status = 1):
     '''Update all archive and series files in the database'''
     c = conn.cursor()
     c.execute('SELECT file, type FROM repec WHERE status = ?', (status, ))
     files = c.fetchall()
     c.close()
     print('Updating archive and series files...')
-    status = parallel(lambda el: update_series_1(conn, *el), files)
+    status = parallel(lambda el: update_series_1(conn, lock, *el), files)
     print('{} out of {} records updated successfully'.format(sum(status), len(files)))
 
 def update_remotes(conn, status = 1):
@@ -123,9 +113,10 @@ def update_remotes(conn, status = 1):
 def update():
     '''Update the database on the basis of RePEc information'''
     conn = sqlite3.connect(settings.database, check_same_thread = False)
+    lock = threading.Lock()
     try:
         update_repec(conn)
-        update_series(conn)
+        update_series(conn, lock)
         update_remotes(conn)
     except:
         conn.rollback()

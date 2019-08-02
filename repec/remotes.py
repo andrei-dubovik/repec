@@ -3,6 +3,7 @@ import re
 import subprocess
 from urllib.parse import urlparse, urljoin
 import requests
+from requests.packages import urllib3
 from lxml import etree
 import random
 from threading import Lock
@@ -53,20 +54,20 @@ def listing(url):
         raise RuntimeError('Empty listing')
     return files
 
-def update_listings_1(conn, url):
+def update_listings_1(conn, lock, url):
     files = listing(url)
-    with Lock():
+    with lock:
         c = conn.cursor()
         if iserror(files):
             c.execute('UPDATE remotes SET status = 2, error = ? WHERE url = ?', (str(files), url))
         else:
             files = [(f, url) for f in files]
-            c.execute('UPDATE remotes SET status = 0 WHERE url = ?', (url, ))
+            c.execute('UPDATE remotes SET status = 0, error = NULL WHERE url = ?', (url, ))
             c.executemany('REPLACE INTO listings (url, remote) VALUES (?, ?)', files)
         c.close()
     return not iserror(files)
 
-def update_listings(conn, status = 1, threads = 32):
+def update_listings(conn, lock, status = 1):
     '''Update remote listings'''
     c = conn.cursor()
     c.execute('SELECT url FROM remotes WHERE status = ?', (status, ))
@@ -74,14 +75,16 @@ def update_listings(conn, status = 1, threads = 32):
     urls = random.sample(urls, k = len(urls)) # To redistribute load
     c.close()
     print('Updating remote listings...')
-    status = parallel(lambda u: update_listings_1(conn, u), urls)
+    status = parallel(lambda u: update_listings_1(conn, lock, u), urls)
     print('{} out of {} records updated successfully'.format(sum(status), len(urls)))
 
 def update():
     '''Update remote listings (wrapper)'''
+
     conn = sqlite3.connect(settings.database, check_same_thread = False)
+    lock = threading.Lock()
     try:
-        update_listings(conn)
+        update_listings(conn, lock)
     except:
         conn.rollback()
     else:

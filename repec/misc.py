@@ -24,3 +24,11 @@ def parallel(func, lst, threads = 32):
     '''Apply a function to a list in parallel'''
     with ThreadPoolExecutor(max_workers = threads) as executor:
         return list(meter(executor.map(func, lst), len(lst)))
+
+def collect(lst):
+    '''Collect a list of key, value pairs into a dictionary'''
+    dct = {}
+    for k, v in lst:
+        vv = dct.setdefault(k, [])
+        vv.append(v)
+    return dct
