@@ -33,6 +33,24 @@ SQL = '''
         status integer DEFAULT 1,
         error text
     );
+    CREATE TABLE papers (
+        pid integer PRIMARY KEY,
+        handle text UNIQUE,
+        url text,
+        template text,
+        title text,
+        abstract text,
+        journal text,
+        year integer,
+        volume integer,
+        issue integer,
+        pages text,
+        redif blob
+    );
+    CREATE TABLE authors (
+        pid integer REFERENCES papers ON DELETE CASCADE,
+        name text
+    );
 '''
 
 def prepare(path):

@@ -75,7 +75,8 @@ def update_listings(conn, lock, status = 1):
     urls = random.sample(urls, k = len(urls)) # To redistribute load
     c.close()
     print('Updating remote listings...')
-    status = parallel(lambda u: update_listings_1(conn, lock, u), urls)
+    worker = lambda u: update_listings_1(conn, lock, u)
+    status = parallel(worker, urls, settings.no_threads_www)
     print('{} out of {} records updated successfully'.format(sum(status), len(urls)))
 
 def update():

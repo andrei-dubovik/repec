@@ -1,7 +1,7 @@
 # Load global packages
 import re
 
-def decode(rdf):
+def decode(rdf, hint = []):
     '''Decode ReDIF document'''
     def decode(encoding):
         rslt = rdf.decode(encoding)
@@ -9,7 +9,7 @@ def decode(rdf):
             raise RuntimeError('Decoding Error')
         return rslt
 
-    encodings = ['windows-1252', 'utf-8', 'utf-16', 'latin-1']
+    encodings = hint + ['windows-1252', 'utf-8', 'utf-16', 'latin-1']
     if rdf[:3] == b'\xef\xbb\xbf':
         encodings = ['utf-8-sig'] + encodings
     for enc in encodings:
@@ -42,6 +42,9 @@ def load(rdf):
     rdf = re.split('(^[a-zA-Z0-9\-#]+:\s*)', rdf, flags = re.M)[1:]
     rdf = [l.strip() for l in rdf]
     rdf = [(rdf[i].rstrip(':').lower(), rdf[i+1]) for i in range(0, len(rdf), 2)]
+
+    # Drop empty fields
+    rdf = [f for f in rdf if f[1] != '']
 
     # Split templates
     rdf = split(rdf, lambda x: x[0] == 'template-type')[1:]

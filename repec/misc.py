@@ -20,7 +20,7 @@ def meter(it, it_len):
         print('[{}/{}]'.format(i + 1, it_len), end = '\r')
         yield el
 
-def parallel(func, lst, threads = 32):
+def parallel(func, lst, threads):
     '''Apply a function to a list in parallel'''
     with ThreadPoolExecutor(max_workers = threads) as executor:
         return list(meter(executor.map(func, lst), len(lst)))

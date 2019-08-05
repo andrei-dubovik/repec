@@ -76,7 +76,8 @@ def update_series(conn, lock, status = 1):
     files = c.fetchall()
     c.close()
     print('Updating archive and series files...')
-    status = parallel(lambda el: update_series_1(conn, lock, *el), files)
+    worker = lambda el: update_series_1(conn, lock, *el)
+    status = parallel(worker, files, threads = settings.no_threads_repec)
     print('{} out of {} records updated successfully'.format(sum(status), len(files)))
 
 def update_remotes(conn, status = 1):
