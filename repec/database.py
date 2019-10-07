@@ -51,6 +51,12 @@ SQL = '''
         pid integer REFERENCES papers ON DELETE CASCADE,
         name text
     );
+    CREATE TABLE meta (
+        parameter text PRIMARY KEY,
+        value text
+    );
+    INSERT INTO meta VALUES
+        ("version", 1);
 '''
 
 def prepare(path):
