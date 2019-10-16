@@ -5,6 +5,7 @@ timeout = 300 # seconds
 batch_size = 10000 # records in each commit
 no_threads_repec = 32
 no_threads_www = 128
+jel = 'https://www.aeaweb.org/econlit/classificationTree.xml'
 
 # Masquerading as Chrome, otherwise some sites refuse connection
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
