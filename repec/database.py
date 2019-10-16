@@ -51,21 +51,58 @@ SQL = '''
         pid integer REFERENCES papers ON DELETE CASCADE,
         name text
     );
+    CREATE TABLE jel (
+        code text PRIMARY KEY,
+        parent text,
+        description text
+    );
+    CREATE TABLE papers_jel (
+        pid integer REFERENCES papers ON DELETE CASCADE,
+        code text REFERENCES jel
+    );
+    CREATE INDEX papers_jel_code ON papers_jel (code);
     CREATE TABLE meta (
         parameter text PRIMARY KEY,
         value text
     );
     INSERT INTO meta VALUES
-        ("version", 1);
+        ("version", 2);
 '''
+
+def jcode(item):
+    '''Get JEL code'''
+    e = item.xpath('code/text()')
+    return e[0] if e else None
+
+def jdesc(item):
+    '''Get JEL description'''
+    return unescape(item.xpath('description/text()')[0])
+
+def import_level(c, element):
+    '''Recursively import JEL hierarchy'''
+    sql = 'INSERT INTO jel (code, parent, description) VALUES (?, ?, ?)'
+    parent = jcode(element)
+    items = element.xpath('classification')
+    rows = [(jcode(i), parent, jdesc(i)) for i in items]
+    c.executemany(sql, rows)
+    for item in items:
+        import_level(c, item)
+
+def populate_jel(conn):
+    '''Download and save official JEL classification'''
+    page = requests.get(settings.jel)
+    xml = etree.fromstring(page.content)
+    with conn:
+        c = conn.cursor()
+        import_level(c, xml)
+        c.close()
 
 def prepare(path):
     '''Prepare a new SQLite database'''
     if os.path.exists(path):
         raise RuntimeError('Database already exists')
     conn = sqlite3.connect(path)
-    c = conn.cursor()
-    c.executescript(SQL)
-    c.close()
+    conn.executescript(SQL)
+    populate_jel(conn)
 
 # prepare(settings.database)

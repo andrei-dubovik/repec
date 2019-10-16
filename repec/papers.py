@@ -62,7 +62,23 @@ def load(url):
         raise RuntimeError('Empty series')
     return papers
 
-def replace_paper(c, paper, url):
+def filterjel(jel, alljel):
+    '''Verify a JEL code against the official list'''
+    if jel in alljel:
+        return jel
+    elif jel[:2] in alljel:
+        return jel[:2]
+
+def parsejel(jel, alljel):
+    '''Ad-hoc JEL parsing rules (many records do not follow the official specification)'''
+    jel = re.sub('([A-Z])[-., ]+([0-9])', r'\1\2', jel)
+    jel = re.split('[^A-Z0-9]+', jel.upper())
+    jel = [c[:3] for c in jel if re.match('[A-Z][0-9]+$', c)]
+    jel = [filterjel(c, alljel) for c in jel]
+    jel = [c for c in jel if c]
+    return jel
+
+def replace_paper(c, paper, url, alljel):
     '''Update a single paper record'''
     blob = json.dumps(paper, ensure_ascii = False).encode(encoding = 'utf-8')
     paper = collect(paper)
@@ -85,8 +101,12 @@ def replace_paper(c, paper, url):
     if 'author-name' in paper:
         authors = [(pid, n) for n in paper['author-name']]
         c.executemany('INSERT INTO authors (pid, name) VALUES (?, ?)', authors)
+    if 'classification-jel' in paper:
+        jel = parsejel(paper['classification-jel'], alljel)
+        jel = [(pid, c) for c in jel]
+        c.executemany('INSERT INTO papers_jel (pid, code) VALUES (?, ?)', jel)
 
-def update_papers_1(conn, lock, url):
+def update_papers_1(conn, lock, url, alljel):
     '''Update papers from a single ReDIF document'''
     papers = load(url)
     with lock:
@@ -96,13 +116,15 @@ def update_papers_1(conn, lock, url):
         else:
             c.execute('UPDATE listings SET status = 0, error = NULL WHERE url = ?', (url, ))
             for paper in papers:
-                replace_paper(c, paper, url)
+                replace_paper(c, paper, url, alljel)
         c.close()
     return not iserror(papers)
 
 def update_papers(conn, lock, status = 1):
     '''Update papers from all ReDIF documents'''
     c = conn.cursor()
+    c.execute('SELECT code FROM jel WHERE parent IS NOT NULL')
+    alljel = [r[0] for r in c.fetchall()]
     c.execute('SELECT url FROM listings WHERE status = ?', (status, ))
     urls = [r[0] for r in c.fetchall()]
     urls = random.sample(urls, k = len(urls)) # To redistribute load
@@ -114,7 +136,7 @@ def update_papers(conn, lock, status = 1):
     for i in range(no_batches):
         print('Downloading batch {}/{}...'.format(i+1, no_batches))
         batch = urls[i*size:(i+1)*size]
-        worker = lambda u: update_papers_1(conn, lock, u)
+        worker = lambda u: update_papers_1(conn, lock, u, alljel)
         bs = sum(parallel(worker, batch, threads = settings.no_threads_www))
         status += bs
         conn.commit()
