@@ -78,6 +78,11 @@ def parsejel(jel, alljel):
     jel = [c for c in jel if c]
     return jel
 
+def parse_template(template):
+    '''Parse broken template specification'''
+    m = re.search('edif-([a-z]+)', template, flags = re.I)
+    return m.group(1).lower() if m else None
+
 def replace_paper(c, paper, url, alljel):
     '''Update a single paper record'''
     blob = json.dumps(paper, ensure_ascii = False).encode(encoding = 'utf-8')
@@ -85,7 +90,7 @@ def replace_paper(c, paper, url, alljel):
     r = {}
     r['url'] = url
     r['handle'] = paper['handle'][0]
-    r['template'] = paper['template-type'][0]
+    r['template'] = parse_template(paper['template-type'][0])
     for f in ['title', 'abstract', 'journal', 'volume', 'issue', 'pages']:
         r[f] = paper.get(f, [None])[0]
     date_fields = ['creation-date', 'revision-date', 'year']
