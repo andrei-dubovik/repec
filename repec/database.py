@@ -66,7 +66,7 @@ SQL = '''
         value text
     );
     INSERT INTO meta VALUES
-        ("version", 3);
+        ("version", 4);
 '''
 
 def jcode(item):

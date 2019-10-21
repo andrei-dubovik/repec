@@ -83,6 +83,19 @@ def parse_template(template):
     m = re.search('edif-([a-z]+)', template, flags = re.I)
     return m.group(1).lower() if m else None
 
+def parse_year(date):
+    '''Parse broken date specification'''
+    m = re.search('(?<![0-9])[0-9]{4}', date)
+    y = m.group(0) if m else None
+    return y if y and y != '0000' else None
+
+def last_year(paper):
+    '''Get latest available year'''
+    date_fields = ['creation-date', 'revision-date', 'year']
+    dates = [parse_year(d) for f in date_fields for d in paper.get(f, [])]
+    dates = [d for d in dates if d]
+    return dates[-1] if dates else None
+
 def replace_paper(c, paper, url, alljel):
     '''Update a single paper record'''
     blob = json.dumps(paper, ensure_ascii = False).encode(encoding = 'utf-8')
@@ -93,9 +106,7 @@ def replace_paper(c, paper, url, alljel):
     r['template'] = parse_template(paper['template-type'][0])
     for f in ['title', 'abstract', 'journal', 'volume', 'issue', 'pages']:
         r[f] = paper.get(f, [None])[0]
-    date_fields = ['creation-date', 'revision-date', 'year']
-    dates = [d[:4] for f in date_fields if f in paper for d in paper[f]]
-    r['year'] = ([None] + dates)[-1]
+    r['year'] = last_year(paper)
     r['redif'] = zlib.compress(blob, level = 9)
 
     sql = 'REPLACE INTO papers (' + ', '.join(k for k in r.keys()) + ')'
