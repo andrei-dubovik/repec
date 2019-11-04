@@ -38,6 +38,7 @@ SQL = '''
         handle text UNIQUE,
         url text,
         template text,
+        language text,
         title text,
         abstract text,
         journal text,
@@ -66,7 +67,7 @@ SQL = '''
         value text
     );
     INSERT INTO meta VALUES
-        ("version", 4);
+        ("version", 5);
 '''
 
 def jcode(item):
