@@ -99,7 +99,7 @@ def last_year(paper):
 
 def lang_and(*lang):
     '''Determine common language'''
-    lang = set(lg for lg in lang if lg)
+    lang = set(lg for lg in lang)
     return lang.pop() if len(lang) == 1 else None
 
 def ident_lang_text(text):
