@@ -140,7 +140,7 @@ def replace_paper(c, paper, url, alljel):
         authors = [(pid, n) for n in paper['author-name']]
         c.executemany('INSERT INTO authors (pid, name) VALUES (?, ?)', authors)
     if 'classification-jel' in paper:
-        jel = parsejel(paper['classification-jel'], alljel)
+        jel = parsejel(paper['classification-jel'][0], alljel)
         jel = [(pid, c) for c in jel]
         c.executemany('INSERT INTO papers_jel (pid, code) VALUES (?, ?)', jel)
 
