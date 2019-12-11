@@ -88,6 +88,7 @@ def update():
         update_listings(conn, lock)
     except:
         conn.rollback()
+        raise
     else:
         conn.commit()
     conn.close()

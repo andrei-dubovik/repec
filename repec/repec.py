@@ -121,6 +121,7 @@ def update():
         update_remotes(conn)
     except:
         conn.rollback()
+        raise
     else:
         conn.commit()
     conn.close()

@@ -195,6 +195,7 @@ def update():
         update_papers(conn, lock)
     except:
         conn.rollback()
+        raise
     else:
         conn.commit()
     conn.close()
