@@ -52,6 +52,7 @@ SQL = '''
         pid integer REFERENCES papers ON DELETE CASCADE,
         name text
     );
+    CREATE INDEX authors_pid ON authors (pid);
     CREATE TABLE jel (
         code text PRIMARY KEY,
         parent text,
@@ -61,6 +62,7 @@ SQL = '''
         pid integer REFERENCES papers ON DELETE CASCADE,
         code text REFERENCES jel
     );
+    CREATE INDEX papers_jel_pid ON papers_jel (pid);
     CREATE INDEX papers_jel_code ON papers_jel (code);
     CREATE TABLE meta (
         parameter text PRIMARY KEY,
