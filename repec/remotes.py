@@ -6,7 +6,9 @@ import requests
 from requests.packages import urllib3
 from lxml import etree
 import random
+import threading
 from threading import Lock
+import sqlite3
 
 # Load local packages
 import settings
