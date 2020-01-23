@@ -16,6 +16,7 @@ import cld2
 import settings
 import redif
 from misc import iserror, silent, parallel, collect
+from sanitize import sanitize
 
 def load_ftp(url):
     cmd = ['curl', '-sm {}'.format(settings.timeout), url]
@@ -125,6 +126,8 @@ def replace_paper(c, paper, url, alljel):
     r['template'] = parse_template(paper['template-type'][0])
     for f in ['title', 'abstract', 'journal', 'volume', 'issue', 'pages']:
         r[f] = paper.get(f, [None])[0]
+    for f in ['title', 'abstract', 'journal']:
+        r[f] = sanitize(r[f])
     r['language'] = paper.get('language', ['none'])[0].lower()
     r['language'] = r['language'] if len(r['language']) == 2 else None
     r['language'] = ident_lang_paper(r['title'], r['abstract'], r['language'])
@@ -137,7 +140,8 @@ def replace_paper(c, paper, url, alljel):
     pid = c.lastrowid
 
     if 'author-name' in paper:
-        authors = [(pid, n) for n in paper['author-name']]
+        authors = [sanitize(n) for n in paper['author-name']]
+        authors = [(pid, n) for n in authors if n]
         c.executemany('INSERT INTO authors (pid, name) VALUES (?, ?)', authors)
     if 'classification-jel' in paper:
         jel = parsejel(paper['classification-jel'][0], alljel)
