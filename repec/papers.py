@@ -89,14 +89,16 @@ def parse_year(date):
     '''Parse broken date specification'''
     m = re.search('(?<![0-9])[0-9]{4}', date)
     y = m.group(0) if m else None
-    return y if y and y != '0000' else None
+    return int(y) if y and y != '0000' else None
 
-def last_year(paper):
-    '''Get latest available year'''
-    date_fields = ['creation-date', 'revision-date', 'year']
-    dates = [parse_year(d) for f in date_fields for d in paper.get(f, [])]
-    dates = [d for d in dates if d]
-    return dates[-1] if dates else None
+def get_year(paper):
+    '''Get most relevant available year'''
+    for f in ['year', 'creation-date', 'revision-date']:
+        years = [parse_year(d) for d in paper.get(f, [])]
+        years = [y for y in years if y]
+        if years:
+            return min(years)
+    return None
 
 def lang_and(*lang):
     '''Determine common language'''
@@ -131,7 +133,7 @@ def replace_paper(c, paper, url, alljel):
     r['language'] = paper.get('language', ['none'])[0].lower()
     r['language'] = r['language'] if len(r['language']) == 2 else None
     r['language'] = ident_lang_paper(r['title'], r['abstract'], r['language'])
-    r['year'] = last_year(paper)
+    r['year'] = get_year(paper)
     r['redif'] = zlib.compress(blob, level = 9)
 
     sql = 'REPLACE INTO papers (' + ', '.join(k for k in r.keys()) + ')'
