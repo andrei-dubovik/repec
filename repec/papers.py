@@ -100,23 +100,20 @@ def get_year(paper):
             return min(years)
     return None
 
-def lang_and(*lang):
-    '''Determine common language'''
-    lang = set(lg for lg in lang)
-    return lang.pop() if len(lang) == 1 else None
-
-def ident_lang_text(text):
+def detect_language(text):
     '''A wrapper around cld2.detect()'''
     _, _, details = cld2.detect(text)
     lang = details[0].language_code
     return lang if lang != 'un' else None
 
-def ident_lang_paper(title, abstract, default = None):
-    '''Use Compact Language Detection 2 for language identification'''
-    tlang = ident_lang_text(title)
-    alang = ident_lang_text(abstract)
-    lang = lang_and(tlang, alang)
-    return lang if lang else default
+def lang_and(*lang, default = None):
+    '''Determine common language'''
+    lang = set(detect_language(l) for l in lang if l) # Missing means no information
+    if len(lang) == 1:
+        lang = lang.pop()
+        if lang:
+            return lang
+    return default
 
 def replace_paper(c, paper, url, alljel):
     '''Update a single paper record'''
@@ -132,7 +129,7 @@ def replace_paper(c, paper, url, alljel):
         r[f] = sanitize(r[f])
     r['language'] = paper.get('language', ['none'])[0].lower()
     r['language'] = r['language'] if len(r['language']) == 2 else None
-    r['language'] = ident_lang_paper(r['title'], r['abstract'], r['language'])
+    r['language'] = lang_and(r['title'], r['abstract'], default = r['language'])
     r['year'] = get_year(paper)
     r['redif'] = zlib.compress(blob, level = 9)
 
