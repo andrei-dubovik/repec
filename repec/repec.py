@@ -24,7 +24,7 @@ def ftp_datetime(month, day, tory):
 
 def ftp_ls(url):
     '''Get file listing (with modification dates)'''
-    rslt = subprocess.run(['curl', '-s', url], stdout = subprocess.PIPE)
+    rslt = subprocess.run([settings.curl, '-s', url], stdout = subprocess.PIPE)
     files = rslt.stdout.decode().splitlines()
     prog = re.compile('\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)')
     files = [prog.match(f).groups() for f in files]
@@ -32,7 +32,7 @@ def ftp_ls(url):
 
 def ftp_get(url):
     '''Get ascii file (ReDIF encoding conventions)'''
-    rslt = subprocess.run(['curl', '-s', url], stdout = subprocess.PIPE)
+    rslt = subprocess.run([settings.curl, '-s', url], stdout = subprocess.PIPE)
     return rslt.stdout
 
 def update_repec(conn):
