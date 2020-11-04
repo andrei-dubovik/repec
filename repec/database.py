@@ -1,6 +1,9 @@
 # Load global packages
 import sqlite3
 import os
+import requests
+from lxml import etree
+from html import unescape
 
 # Load local packages
 import settings

@@ -1,3 +1,6 @@
+# Load libraries
+import os
+
 # Global configuration
 database = 'repec.db'
 repec_ftp = 'ftp://all.repec.org/RePEc/all/'
