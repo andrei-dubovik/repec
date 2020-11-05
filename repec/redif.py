@@ -1,3 +1,6 @@
+# Copyright (c) 2019-2020, CPB Netherlands Bureau for Economic Policy Analysis
+# Copyright (c) 2019-2020, Andrey Dubovik <andrei@dubovik.eu>
+
 """Routines for decoding and parsing ReDIF documents."""
 
 # Load global packages

@@ -1,3 +1,6 @@
+# Copyright (c) 2019-2020, CPB Netherlands Bureau for Economic Policy Analysis
+# Copyright (c) 2019-2020, Andrey Dubovik <andrei@dubovik.eu>
+
 """A patch to add missing journal names from series names.
 
 This patch is not yet integrated into the main code. Required SQL
