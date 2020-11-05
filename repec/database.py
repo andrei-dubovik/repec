@@ -115,5 +115,3 @@ def prepare(path):
     conn = sqlite3.connect(path)
     conn.executescript(SQL)
     populate_jel(conn)
-
-# prepare(settings.database)

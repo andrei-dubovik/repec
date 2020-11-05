@@ -1,13 +1,15 @@
 # Load libraries
 import os
 
-# Global configuration
-database = 'repec.db'
-repec_ftp = 'ftp://all.repec.org/RePEc/all/'
+# Default command line arguments
+database = './repec.db'
 timeout = 300 # seconds
 batch_size = 10000 # records in each commit
 no_threads_repec = 32
 no_threads_www = 128
+
+# Additional configuration
+repec_ftp = 'ftp://all.repec.org/RePEc/all/'
 jel = 'https://www.aeaweb.org/econlit/classificationTree.xml'
 curl = 'curl' if os.name == 'nt' else '/usr/bin/curl'
 
