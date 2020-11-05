@@ -14,7 +14,8 @@ SQL = '''
         type text,
         ftpdate text,
         status integer DEFAULT 1,
-        error text
+        error text,
+        replaced_at text DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE series (
         file text,
@@ -23,18 +24,21 @@ SQL = '''
         url text,
         status integer DEFAULT 1,
         error text,
+        replaced_at text DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (file, handle)
     );
     CREATE TABLE remotes (
         url text PRIMARY KEY,
         status integer DEFAULT 1,
-        error text
+        error text,
+        replaced_at text DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE listings (
         url text PRIMARY KEY,
         remote text,
         status integer DEFAULT 1,
-        error text
+        error text,
+        replaced_at text DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE papers (
         pid integer PRIMARY KEY,
@@ -49,7 +53,8 @@ SQL = '''
         volume integer,
         issue integer,
         pages text,
-        redif blob
+        redif blob,
+        replaced_at text DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE authors (
         pid integer REFERENCES papers ON DELETE CASCADE,
@@ -72,7 +77,7 @@ SQL = '''
         value text
     );
     INSERT INTO meta VALUES
-        ("version", 5);
+        ("version", 6);
 '''
 
 def jcode(item):
