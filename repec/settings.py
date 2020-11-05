@@ -1,10 +1,12 @@
+"""Configuration parameters."""
+
 # Load libraries
 import os
 
 # Default command line arguments
 database = './repec.db'
-timeout = 300 # seconds
-batch_size = 10000 # records in each commit
+timeout = 300  # seconds
+batch_size = 10000  # records in each commit
 no_threads_repec = 32
 no_threads_www = 128
 

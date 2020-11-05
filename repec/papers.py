@@ -1,3 +1,5 @@
+"""Routines for downloading and destructuring papers."""
+
 # Load global packages
 import requests
 from requests.packages import urllib3
@@ -18,17 +20,21 @@ import redif
 from misc import iserror, silent, parallel, collect
 from sanitize import sanitize
 
+
 def load_ftp(url):
+    """Download an FTP resource using curl."""
     cmd = ['curl', '-sm {}'.format(settings.timeout), url]
-    rslt = subprocess.run(cmd, stdout = subprocess.PIPE)
+    rslt = subprocess.run(cmd, stdout=subprocess.PIPE)
     if rslt.returncode != 0:
         raise RuntimeError('CURL Error {}'.format(rslt.returncode))
     return redif.decode(rslt.stdout)
 
+
 def load_http(url):
+    """Download an HTTP resourse."""
     try:
         headers = {'User-Agent': settings.user_agent}
-        response = requests.get(url, timeout = settings.timeout, headers = headers)
+        response = requests.get(url, timeout=settings.timeout, headers=headers)
     except requests.exceptions.ConnectionError as err:
         if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
             err.args = ('Max retries exceeded', )
@@ -37,16 +43,18 @@ def load_http(url):
             raise
     if response.status_code != 200:
         raise RuntimeError('HTTP Error {}'.format(response.status_code))
-    return redif.decode(response.content, hint = [response.encoding])
+    return redif.decode(response.content, hint=[response.encoding])
+
 
 def ttype(record):
-    '''Get template type'''
+    """Get template type."""
     tt = next(v for k, v in record if k == 'template-type')
-    return re.match('redif-(\S*)', tt.lower()).group(1)
+    return re.match(r'redif-(\S*)', tt.lower()).group(1)
+
 
 @silent
 def load(url):
-    '''Download ReDIF papers'''
+    """Download ReDIF papers."""
     scheme = urlparse(url)[0]
     if scheme == 'ftp':
         papers = load_ftp(url)
@@ -64,15 +72,17 @@ def load(url):
         raise RuntimeError('Empty series')
     return papers
 
+
 def filterjel(jel, alljel):
-    '''Verify a JEL code against the official list'''
+    """Verify a JEL code against the official list."""
     if jel in alljel:
         return jel
     elif jel[:2] in alljel:
         return jel[:2]
 
+
 def parsejel(jel, alljel):
-    '''Ad-hoc JEL parsing rules (many records do not follow the official specification)'''
+    """Parse JEL using ad-hoc rules."""
     jel = re.sub('([A-Z])[-., ]+([0-9])', r'\1\2', jel)
     jel = re.split('[^A-Z0-9]+', jel.upper())
     jel = [c[:3] for c in jel if re.match('[A-Z][0-9]+$', c)]
@@ -80,19 +90,22 @@ def parsejel(jel, alljel):
     jel = [c for c in jel if c]
     return jel
 
+
 def parse_template(template):
-    '''Parse broken template specification'''
-    m = re.search('edif-([a-z]+)', template, flags = re.I)
+    """Parse broken template specification."""
+    m = re.search('edif-([a-z]+)', template, flags=re.I)
     return m.group(1).lower() if m else None
 
+
 def parse_year(date):
-    '''Parse broken date specification'''
+    """Parse broken date specification."""
     m = re.search('(?<![0-9])[0-9]{4}', date)
     y = m.group(0) if m else None
     return int(y) if y and y != '0000' else None
 
+
 def get_year(paper):
-    '''Get most relevant available year'''
+    """Get most relevant available year."""
     for f in ['year', 'creation-date', 'revision-date']:
         years = [parse_year(d) for d in paper.get(f, [])]
         years = [y for y in years if y]
@@ -100,24 +113,27 @@ def get_year(paper):
             return min(years)
     return None
 
+
 def detect_language(text):
-    '''A wrapper around cld2.detect()'''
+    """Detect language using CLD2 library."""
     _, _, details = cld2.detect(text)
     lang = details[0].language_code
     return lang if lang != 'un' else None
 
-def lang_and(*lang, default = None):
-    '''Determine common language'''
-    lang = set(detect_language(l) for l in lang if l) # Missing means no information
+
+def lang_and(*text, default=None):
+    """Determine common language."""
+    lang = set(detect_language(t) for t in text if t)
     if len(lang) == 1:
         lang = lang.pop()
         if lang:
             return lang
     return default
 
+
 def replace_paper(c, paper, url, alljel):
-    '''Update a single paper record'''
-    blob = json.dumps(paper, ensure_ascii = False).encode(encoding = 'utf-8')
+    """Update a single paper record."""
+    blob = json.dumps(paper, ensure_ascii=False).encode(encoding='utf-8')
     paper = collect(paper)
     r = {}
     r['url'] = url
@@ -129,9 +145,9 @@ def replace_paper(c, paper, url, alljel):
         r[f] = sanitize(r[f])
     r['language'] = paper.get('language', ['none'])[0].lower()
     r['language'] = r['language'] if len(r['language']) == 2 else None
-    r['language'] = lang_and(r['title'], r['abstract'], default = r['language'])
+    r['language'] = lang_and(r['title'], r['abstract'], default=r['language'])
     r['year'] = get_year(paper)
-    r['redif'] = zlib.compress(blob, level = 9)
+    r['redif'] = zlib.compress(blob, level=9)
 
     sql = 'REPLACE INTO papers (' + ', '.join(k for k in r.keys()) + ')'
     sql += ' VALUES (' + ', '.join(['?']*len(r)) + ')'
@@ -147,29 +163,36 @@ def replace_paper(c, paper, url, alljel):
         jel = [(pid, c) for c in jel]
         c.executemany('INSERT INTO papers_jel (pid, code) VALUES (?, ?)', jel)
 
+
 def update_papers_1(conn, lock, url, alljel):
-    '''Update papers from a single ReDIF document'''
+    """Update papers from a single ReDIF document."""
     papers = load(url)
     with lock:
         c = conn.cursor()
         if iserror(papers):
-            c.execute('UPDATE listings SET status = 2, error = ? WHERE url = ?', (str(papers), url))
+            sql = 'UPDATE listings SET status = 2, error = ? WHERE url = ?'
+            c.execute(sql, (str(papers), url))
         else:
-            c.execute('UPDATE listings SET status = 0, error = NULL WHERE url = ?', (url, ))
+            sql = 'UPDATE listings SET status = 0, error = NULL WHERE url = ?'
+            c.execute(sql, (url, ))
             for paper in papers:
                 replace_paper(c, paper, url, alljel)
         c.close()
     return not iserror(papers)
 
-def update_papers(conn, lock, status = 1):
-    '''Update papers from all ReDIF documents'''
+
+def update_papers(conn, lock, status=1):
+    """Update papers from all ReDIF documents."""
     c = conn.cursor()
     c.execute('SELECT code FROM jel WHERE parent IS NOT NULL')
     alljel = [r[0] for r in c.fetchall()]
     c.execute('SELECT url FROM listings WHERE status = ?', (status, ))
     urls = [r[0] for r in c.fetchall()]
-    urls = random.sample(urls, k = len(urls)) # To redistribute load
+    urls = random.sample(urls, k=len(urls))  # to redistribute load
     c.close()
+
+    def worker(u):
+        return update_papers_1(conn, lock, u, alljel)
 
     size = settings.batch_size
     no_batches = math.ceil(len(urls)/size)
@@ -177,18 +200,20 @@ def update_papers(conn, lock, status = 1):
     for i in range(no_batches):
         print('Downloading batch {}/{}...'.format(i+1, no_batches))
         batch = urls[i*size:(i+1)*size]
-        worker = lambda u: update_papers_1(conn, lock, u, alljel)
-        bs = sum(parallel(worker, batch, threads = settings.no_threads_www))
+        bs = sum(parallel(worker, batch, threads=settings.no_threads_www))
         status += bs
         conn.commit()
-        print('{} out of {} records updated successfully'.format(bs, len(batch)))
+        print(f'{bs} out of {len(batch)} records updated successfully')
 
-    print('All batches: {} out of {} records updated successfully'.format(status, len(urls)))
+    print(
+        f'All batches: {status} out of {len(urls)} records'
+        ' updated successfully'
+    )
+
 
 def update():
-    '''Update papers from all ReDIF documents (wrapper)'''
-
-    conn = sqlite3.connect(settings.database, check_same_thread = False)
+    """Update papers from all ReDIF documents (wrapper)."""
+    conn = sqlite3.connect(settings.database, check_same_thread=False)
     c = conn.cursor()
     c.execute('PRAGMA foreign_keys = ON')
     c.close()
@@ -196,7 +221,7 @@ def update():
     lock = threading.Lock()
     try:
         update_papers(conn, lock)
-    except:
+    except BaseException:
         conn.rollback()
         raise
     else:

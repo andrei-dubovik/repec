@@ -1,3 +1,5 @@
+"""Database intialization routines."""
+
 # Load global packages
 import sqlite3
 import os
@@ -8,7 +10,7 @@ from html import unescape
 # Load local packages
 import settings
 
-SQL = '''
+SQL = """
     CREATE TABLE repec (
         file text PRIMARY KEY,
         type text,
@@ -77,20 +79,23 @@ SQL = '''
         value text
     );
     INSERT INTO meta VALUES
-        ("version", 6);
-'''
+        ('version', 6);
+"""
+
 
 def jcode(item):
-    '''Get JEL code'''
+    """Get JEL code."""
     e = item.xpath('code/text()')
     return e[0] if e else None
 
+
 def jdesc(item):
-    '''Get JEL description'''
+    """Get JEL description."""
     return unescape(item.xpath('description/text()')[0])
 
+
 def import_level(c, element):
-    '''Recursively import JEL hierarchy'''
+    """Recursively import JEL hierarchy."""
     sql = 'INSERT INTO jel (code, parent, description) VALUES (?, ?, ?)'
     parent = jcode(element)
     items = element.xpath('classification')
@@ -99,8 +104,9 @@ def import_level(c, element):
     for item in items:
         import_level(c, item)
 
+
 def populate_jel(conn):
-    '''Download and save official JEL classification'''
+    """Download and save official JEL classification."""
     page = requests.get(settings.jel)
     xml = etree.fromstring(page.content)
     with conn:
@@ -108,8 +114,9 @@ def populate_jel(conn):
         import_level(c, xml)
         c.close()
 
+
 def prepare(path):
-    '''Prepare a new SQLite database'''
+    """Prepare a new SQLite database."""
     if os.path.exists(path):
         raise RuntimeError('Database already exists')
     conn = sqlite3.connect(path)
