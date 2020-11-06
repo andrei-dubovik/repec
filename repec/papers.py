@@ -119,8 +119,11 @@ def get_year(paper):
 
 def detect_language(text):
     """Detect language using CLD2 library."""
-    _, _, details = cld2.detect(text)
-    lang = details[0].language_code
+    try:  # todo: figure out what's causing an occasional error
+        _, _, details = cld2.detect(text)
+        lang = details[0].language_code
+    except ValueError:
+        lang = 'un'
     return lang if lang != 'un' else None
 
 
