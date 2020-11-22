@@ -65,6 +65,10 @@ authors    | Author names.
 jel        | JEL codes.
 papers_jel | Correspondence between `papers` and `jel`.
 
+## Applications
+
+* The other day, I made a web page where you can check trends in economics. It's like a toy version of google trends but then based on words from titles and abstracts from RePEc. Some trends are suggestive, e.g. [it's all about new results](https://dubovik.eu/blog/repec?t=replicate&t=reproduce&t=verify&t=novel).
+
 ## See Also
 
 There is also an official Perl script for downloading the data, see [remi](https://ideas.repec.org/c/rpc/script/remi.html). Remi is aimed at downloading ReDIF files, whereas the current set of scripts is aimed at downloading and partially processing the files, with the idea of using an SQLite backend to track progress and to store the final results.
