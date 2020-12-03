@@ -8,6 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import sqlite3
 
+# Load local packages
+import settings
+
 
 def iserror(err):
     """Check if err is an exception."""
@@ -27,7 +30,8 @@ def silent(func):
 def meter(it, it_len):
     """Print progress information."""
     for i, el in enumerate(it):
-        print('[{}/{}]'.format(i + 1, it_len), end='\r')
+        if settings.verbosity == 3:
+            print('[{}/{}]'.format(i + 1, it_len), end='\r')
         yield el
 
 

@@ -27,6 +27,7 @@ def update(args):
     settings.batch_size = args.batchsize
     settings.no_threads_repec = args.threads_repec
     settings.no_threads_www = args.threads_www
+    settings.verbosity = max(settings.verbosity - args.quiet, 0)
 
     if not args.repec and not args.listings and not args.papers:
         args.repec = args.listings = args.papers = True
@@ -127,6 +128,12 @@ if __name__ == '__main__':
             'General number of threads used for downloading'
             f' (default: {settings.no_threads_www})'
         ),
+    )
+    p_update.add_argument(
+        '-q', '--quiet',
+        action='count',
+        default=0,
+        help='Decrease verbosity level (can be given multiple times)',
     )
 
     # Process command line arguments and dispatch on subcommand
