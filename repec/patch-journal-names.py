@@ -3,8 +3,7 @@
 
 """A patch to add missing journal names from series names.
 
-This patch is not yet integrated into the main code. Required SQL
-index: papers(template, journal, handle).
+This patch is not yet integrated into the main code.
 """
 
 # Load local packages
@@ -67,6 +66,16 @@ def merge(handles, names):
 
 
 @dbconnection(settings.database)
+def ensure_indices(conn):
+    """Create necessary indices if missing."""
+    sql = """
+        CREATE INDEX IF NOT EXISTS papers_tejoha
+        ON papers (template, journal, handle);
+    """
+    conn.execute(sql)
+
+
+@dbconnection(settings.database)
 def update_names(conn, names):
     """Update journal names from series names."""
     sql = """
@@ -80,6 +89,7 @@ def update_names(conn, names):
 
 def main():
     """Run the whole update."""
+    ensure_indices()
     handles = fetch_handles()
     files = fetch_files(handles=handles)
     names = collect_names(files)
