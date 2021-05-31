@@ -12,6 +12,8 @@ import warnings
 BLOCKTAGS = ['div', 'p', 'br', 'li',
              'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 
+EMAIL = re.compile("['a-z0-9._-]+@[a-z0-9._-]+.[a-z]+")
+
 
 def remove_cc(text):
     r"""Remove control characters (except for \t, \r, \n)."""
@@ -85,3 +87,12 @@ def sanitize(text):
     if isna(text) or not isvalid(text):
         return None
     return text
+
+
+def sanitize_email(email):
+    """Get a clean email address."""
+    email = sanitize(email)
+    if type(email) != str:
+        return email
+    m = EMAIL.search(email.lower())
+    return m.group() if m else None

@@ -22,7 +22,7 @@ from collections import defaultdict
 import settings
 import redif
 from misc import iserror, silent, parallel
-from sanitize import sanitize
+from sanitize import sanitize, sanitize_email
 
 
 def load_ftp(url):
@@ -163,9 +163,13 @@ def replace_paper(c, paper, url, alljel):
 
     if 'author' in paper:
         authors = [a for a in paper['author'] if type(a) == defaultdict]
-        authors = [sanitize(a['name'][0]) for a in authors]
-        authors = [(pid, n) for n in authors if n]
-        c.executemany('INSERT INTO authors (pid, name) VALUES (?, ?)', authors)
+        authors = [
+            (sanitize(a['name'][0]), sanitize_email(a.get('email', [None])[0]))
+            for a in authors
+        ]
+        authors = [(pid, n, e) for n, e in authors if n]
+        sql = 'INSERT INTO authors (pid, name, email) VALUES (?, ?, ?)'
+        c.executemany(sql, authors)
     if 'classification-jel' in paper:
         jel = parsejel(paper['classification-jel'][0], alljel)
         jel = [(pid, c) for c in jel]

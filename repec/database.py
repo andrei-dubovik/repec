@@ -14,7 +14,7 @@ from html import unescape
 import settings
 
 # Define constants
-DBVERSION = '6'
+DBVERSION = '7'
 
 SQL = f"""
     CREATE TABLE repec (
@@ -66,7 +66,8 @@ SQL = f"""
     );
     CREATE TABLE authors (
         pid integer REFERENCES papers ON DELETE CASCADE,
-        name text
+        name text,
+        email text
     );
     CREATE INDEX authors_pid ON authors (pid);
     CREATE TABLE jel (
