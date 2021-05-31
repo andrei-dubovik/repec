@@ -13,7 +13,10 @@ from html import unescape
 # Load local packages
 import settings
 
-SQL = """
+# Define constants
+DBVERSION = '6'
+
+SQL = f"""
     CREATE TABLE repec (
         file text PRIMARY KEY,
         type text,
@@ -82,7 +85,7 @@ SQL = """
         value text
     );
     INSERT INTO meta VALUES
-        ('version', 6);
+        ('version', {DBVERSION});
 """
 
 
@@ -125,3 +128,12 @@ def prepare(path):
     conn = sqlite3.connect(path)
     conn.executescript(SQL)
     populate_jel(conn)
+
+
+def check_version():
+    """Verify database version."""
+    sql = "SELECT value FROM meta WHERE parameter = 'version'"
+    conn = sqlite3.connect(settings.database)
+    version, = conn.execute(sql).fetchone()
+    if version != DBVERSION:
+        raise RuntimeError('Incompatible database version')

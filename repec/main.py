@@ -32,6 +32,8 @@ def update(args):
     if not args.repec and not args.listings and not args.papers:
         args.repec = args.listings = args.papers = True
 
+    database.check_version()  # Abort on incompatible versions
+
     if args.repec:
         repec.update()
     if args.listings:
