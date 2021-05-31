@@ -5,6 +5,16 @@
 
 # Load global packages
 import re
+from collections import defaultdict
+
+# Define constants
+CLUSTERS = set([
+    'author-name',
+    'editor-name',
+    'file-url',
+    'provider-name',
+    'workplace-name',
+])
 
 
 def decode(rdf, hint=[]):
@@ -60,3 +70,34 @@ def load(rdf):
     # Split templates
     rdf = split(rdf, lambda x: x[0] == 'template-type')[1:]
     return rdf
+
+
+def collect(records):
+    """Collect ReDIF fields together, group clusters."""
+    def helper(path, head, doc, i):
+        flag = False
+        while i < len(records):
+            k, v = records[i]
+            if k.startswith(path):
+                k = k[len(path):]
+                if k in CLUSTERS:
+                    # Enter new cluster
+                    base, _, key = k.partition('-')
+                    cluster = defaultdict(lambda: [])
+                    doc[base].append(cluster)
+                    i = helper(path + base + '-', key, cluster, i)
+                elif flag and k == head:
+                    # Exit cluster on a repeated cluster key
+                    return i
+                else:
+                    doc[k].append(v)
+                    flag = True
+                    i += 1
+            else:
+                # Exit cluster
+                return i
+        return i
+
+    doc = defaultdict(lambda: [])
+    helper('', '', doc, 0)
+    return doc

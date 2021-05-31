@@ -16,11 +16,12 @@ import threading
 import random
 import math
 import cld2
+from collections import defaultdict
 
 # Load local packages
 import settings
 import redif
-from misc import iserror, silent, parallel, collect
+from misc import iserror, silent, parallel
 from sanitize import sanitize
 
 
@@ -140,7 +141,7 @@ def lang_and(*text, default=None):
 def replace_paper(c, paper, url, alljel):
     """Update a single paper record."""
     blob = json.dumps(paper, ensure_ascii=False).encode(encoding='utf-8')
-    paper = collect(paper)
+    paper = redif.collect(paper)
     r = {}
     r['url'] = url
     r['handle'] = paper['handle'][0]
@@ -160,8 +161,9 @@ def replace_paper(c, paper, url, alljel):
     c.execute(sql, list(r.values()))
     pid = c.lastrowid
 
-    if 'author-name' in paper:
-        authors = [sanitize(n) for n in paper['author-name']]
+    if 'author' in paper:
+        authors = [a for a in paper['author'] if type(a) == defaultdict]
+        authors = [sanitize(a['name'][0]) for a in authors]
         authors = [(pid, n) for n in authors if n]
         c.executemany('INSERT INTO authors (pid, name) VALUES (?, ?)', authors)
     if 'classification-jel' in paper:
