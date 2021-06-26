@@ -84,14 +84,16 @@ def filterjel(jel, alljel):
     elif jel[:2] in alljel:
         return jel[:2]
 
-
 def parsejel(jel, alljel):
     """Parse JEL using ad-hoc rules."""
     jel = re.sub('([A-Z])[-., ]+([0-9])', r'\1\2', jel)
     jel = re.split('[^A-Z0-9]+', jel.upper())
     jel = [c[:3] for c in jel if re.match('[A-Z][0-9]+$', c)]
     jel = [filterjel(c, alljel) for c in jel]
-    jel = [c for c in jel if c]
+    jel = sorted([c for c in jel if c])
+    # Do not include JEL for papers that blindly follow the online example
+    if jel == ['R00', 'Z0']:
+        return []
     return jel
 
 
