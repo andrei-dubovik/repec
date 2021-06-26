@@ -90,7 +90,7 @@ def parsejel(jel, alljel):
     jel = re.split('[^A-Z0-9]+', jel.upper())
     jel = [c[:3] for c in jel if re.match('[A-Z][0-9]+$', c)]
     jel = [filterjel(c, alljel) for c in jel]
-    jel = sorted([c for c in jel if c])
+    jel = sorted(set(c for c in jel if c))
     # Do not include JEL for papers that blindly follow the online example
     if jel == ['R00', 'Z0']:
         return []
