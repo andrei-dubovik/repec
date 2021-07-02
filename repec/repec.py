@@ -5,7 +5,6 @@
 
 # Load global packages
 import re
-import subprocess
 import threading
 import sqlite3
 from datetime import datetime
@@ -14,6 +13,7 @@ from datetime import datetime
 import settings
 import redif
 from misc import iserror, silent, parallel, collect
+from network import fetch_curl
 
 # RePEc FTP is broken; using curl as a workaround
 
@@ -30,19 +30,12 @@ def ftp_datetime(month, day, tory):
 
 def ftp_ls(url):
     """Get file listing (with modification dates)."""
-    rslt = subprocess.run([settings.curl, '-s', url], stdout=subprocess.PIPE)
-    files = rslt.stdout.decode().splitlines()
+    files = fetch_curl(url).decode().splitlines()
     prog = re.compile(
         r'\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)'
     )
     files = [prog.match(f).groups() for f in files]
     return [(f[3], ftp_datetime(*f[:3])) for f in files]
-
-
-def ftp_get(url):
-    """Get ascii file (ReDIF encoding conventions)."""
-    rslt = subprocess.run([settings.curl, '-s', url], stdout=subprocess.PIPE)
-    return rslt.stdout
 
 
 def update_repec(conn):
@@ -61,7 +54,7 @@ def update_repec(conn):
 @silent
 def load(file, cat):
     """Load a series or an archive file."""
-    rdf = redif.load(redif.decode(ftp_get(settings.repec_ftp + file)))
+    rdf = redif.load(redif.decode(fetch_curl(settings.repec_ftp + file)))
 
     def key(r):
         r = dict(r)

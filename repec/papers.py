@@ -4,10 +4,7 @@
 """Routines for downloading and destructuring papers."""
 
 # Load global packages
-import requests
-from requests.packages import urllib3
 from urllib.parse import urlparse
-import subprocess
 import re
 import sqlite3
 import json
@@ -23,31 +20,7 @@ import settings
 import redif
 from misc import iserror, silent, parallel
 from sanitize import sanitize, sanitize_email
-
-
-def load_ftp(url):
-    """Download an FTP resource using curl."""
-    cmd = ['curl', '-sm {}'.format(settings.timeout), url]
-    rslt = subprocess.run(cmd, stdout=subprocess.PIPE)
-    if rslt.returncode != 0:
-        raise RuntimeError('CURL Error {}'.format(rslt.returncode))
-    return redif.decode(rslt.stdout)
-
-
-def load_http(url):
-    """Download an HTTP resourse."""
-    try:
-        headers = {'User-Agent': settings.user_agent}
-        response = requests.get(url, timeout=settings.timeout, headers=headers)
-    except requests.exceptions.ConnectionError as err:
-        if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
-            err.args = ('Max retries exceeded', )
-            raise
-        else:
-            raise
-    if response.status_code != 200:
-        raise RuntimeError('HTTP Error {}'.format(response.status_code))
-    return redif.decode(response.content, hint=[response.encoding])
+from network import fetch, fetch_curl
 
 
 def ttype(record):
@@ -61,9 +34,10 @@ def load(url):
     """Download ReDIF papers."""
     scheme = urlparse(url)[0]
     if scheme == 'ftp':
-        papers = load_ftp(url)
+        papers = redif.decode(fetch_curl(url))
     elif scheme in ['http', 'https']:
-        papers = load_http(url)
+        content, encoding = fetch(url)
+        papers = redif.decode(content, hint=[encoding])
     else:
         raise RuntimeError('Unknown scheme {}'.format(scheme))
     papers = redif.load(papers)

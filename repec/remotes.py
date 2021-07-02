@@ -5,10 +5,7 @@
 
 # Load global packages
 import re
-import subprocess
 from urllib.parse import urlparse, urljoin
-import requests
-from requests.packages import urllib3
 from lxml import etree
 import random
 import threading
@@ -17,15 +14,12 @@ import sqlite3
 # Load local packages
 import settings
 from misc import iserror, silent, parallel
+from network import fetch, fetch_curl
 
 
 def listing_ftp(url):
     """Download an FTP directory listing."""
-    cmd = ['curl', '-lsm {}'.format(settings.timeout), url]
-    rslt = subprocess.run(cmd, stdout=subprocess.PIPE)
-    if rslt.returncode != 0:
-        raise RuntimeError('CURL Error {}'.format(rslt.returncode))
-    files = rslt.stdout.decode().splitlines()
+    files = fetch_curl(url, '-l').decode().splitlines()
     prog = re.compile(r'.+\.(rdf|redif)$', flags=re.I)
     files = [f for f in files if prog.match(f)]
     return [url + f for f in files]
@@ -33,18 +27,8 @@ def listing_ftp(url):
 
 def listing_http(url):
     """Download an HTTP directory listing."""
-    try:
-        headers = {'User-Agent': settings.user_agent}
-        response = requests.get(url, timeout=settings.timeout, headers=headers)
-    except requests.exceptions.ConnectionError as err:
-        if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
-            err.args = ('Max retries exceeded', )
-            raise
-        else:
-            raise
-    if response.status_code != 200:
-        raise RuntimeError('HTTP Error {}'.format(response.status_code))
-    html = etree.HTML(response.content)
+    content, _ = fetch(url)
+    html = etree.HTML(content)
     files = html.xpath('//a/@href')
     prog = re.compile(r'.+\.(rdf|redif)$', flags=re.I)
     files = [f for f in files if prog.match(f)]

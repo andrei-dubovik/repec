@@ -6,12 +6,12 @@
 # Load global packages
 import sqlite3
 import os
-import requests
 from lxml import etree
 from html import unescape
 
 # Load local packages
 import settings
+from network import fetch
 
 # Define constants
 DBVERSION = '8'
@@ -114,8 +114,8 @@ def import_level(c, element):
 
 def populate_jel(conn):
     """Download and save official JEL classification."""
-    page = requests.get(settings.jel)
-    xml = etree.fromstring(page.content)
+    content, _ = fetch(settings.jel)
+    xml = etree.fromstring(content)
     with conn:
         c = conn.cursor()
         import_level(c, xml)
