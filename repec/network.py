@@ -15,7 +15,11 @@ def fetch(url):
     """Fetch an URL using requests."""
     try:
         headers = {'User-Agent': settings.user_agent}
-        response = requests.get(url, timeout=settings.timeout, headers=headers)
+        proxies = {}
+        if settings.proxy is not None:
+            proxies['http'] = settings.proxy
+            proxies['https'] = settings.proxy
+        response = requests.get(url, timeout=settings.timeout, headers=headers, proxies=proxies)
     except requests.exceptions.ConnectionError as err:
         if type(err.args[0]) == urllib3.exceptions.MaxRetryError:
             err.args = ('Max retries exceeded', )  # Simplify error message
@@ -29,7 +33,8 @@ def fetch(url):
 
 def fetch_curl(url, options=[]):
     """Fetch an URL using curl."""
-    cmd = ['curl', '-sm', str(settings.timeout), *options, url]
+    proxy = ['--proxy', settings.proxy] if settings.proxy is not None else []
+    cmd = ['curl', *proxy, '-sm', str(settings.timeout), *options, url]
     rslt = subprocess.run(cmd, stdout=subprocess.PIPE)
     if rslt.returncode != 0:
         raise RuntimeError('CURL Error {}'.format(rslt.returncode))

@@ -17,6 +17,7 @@ import papers
 def init(args):
     """Initialize the database."""
     settings.database = args.database
+    settings.proxy = args.proxy
     database.prepare(settings.database)
 
 
@@ -27,6 +28,7 @@ def update(args):
     settings.batch_size = args.batchsize
     settings.no_threads_repec = args.threads_repec
     settings.no_threads_www = args.threads_www
+    settings.proxy = args.proxy
     settings.verbosity = max(settings.verbosity - args.quiet, 0)
 
     if not args.repec and not args.listings and not args.papers:
@@ -58,6 +60,14 @@ if __name__ == '__main__':
         '--database',
         default=settings.database,
         help=f'SQLite database location (default: {settings.database})',
+    )
+    p_init.add_argument(
+        '--proxy',
+        default=settings.proxy,
+        metavar='PROXY',
+        help=(
+            'Route all requests through a proxy'
+        ),
     )
 
     # Update subcommand
@@ -129,6 +139,14 @@ if __name__ == '__main__':
         help=(
             'General number of threads used for downloading'
             f' (default: {settings.no_threads_www})'
+        ),
+    )
+    p_update.add_argument(
+        '--proxy',
+        default=settings.proxy,
+        metavar='PROXY',
+        help=(
+            'Route all requests through a proxy'
         ),
     )
     p_update.add_argument(
