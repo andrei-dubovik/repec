@@ -19,7 +19,7 @@ from network import fetch, fetch_curl
 
 def listing_ftp(url):
     """Download an FTP directory listing."""
-    files = fetch_curl(url, '-l').decode().splitlines()
+    files = fetch_curl(url, ['-l']).decode().splitlines()
     prog = re.compile(r'.+\.(rdf|redif)$', flags=re.I)
     files = [f for f in files if prog.match(f)]
     return [url + f for f in files]

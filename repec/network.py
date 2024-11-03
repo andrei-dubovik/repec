@@ -27,9 +27,9 @@ def fetch(url):
     return response.content, response.encoding
 
 
-def fetch_curl(url, options=''):
+def fetch_curl(url, options=[]):
     """Fetch an URL using curl."""
-    cmd = ['curl', '-sm {}'.format(settings.timeout), options, url]
+    cmd = ['curl', '-sm', str(settings.timeout), *options, url]
     rslt = subprocess.run(cmd, stdout=subprocess.PIPE)
     if rslt.returncode != 0:
         raise RuntimeError('CURL Error {}'.format(rslt.returncode))
