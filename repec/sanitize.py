@@ -8,17 +8,35 @@ import re
 from lxml.html import tostring, html5parser
 import warnings
 
-# Define global settings
-BLOCKTAGS = ['div', 'p', 'br', 'li',
-             'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 
+def prepare_cc():
+    r"""Prepare a regex for removing control characters (except for \t, \r, \n)."""
+    # Ascii control characters
+    cc = [*range(0x00, 0x1f + 1), 0x7f]
+    cc.remove(0x09)
+    cc.remove(0x0a)
+    cc.remove(0x0d)
+
+    # Non latin-1 and non utf-8 opening characters
+    undefined = list(range(0x80, 0x9f + 1))
+
+    return re.compile('|'.join([
+        *(chr(c) for c in cc),  # control characters
+        *(chr(c) for c in undefined),  # undefined characters
+        *('&#x0*' + hex(c)[2:] + ';' for c in cc),  # html-escaped control characters (hex)
+        *('&#0*' + str(c) + ';' for c in cc),  # html-escaped control characters (decimal)
+    ]))
+
+
+# Define global settings
+BLOCKTAGS = ['div', 'p', 'br', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 EMAIL = re.compile("['a-z0-9._-]+@[a-z0-9._-]+.[a-z]+")
+CC = prepare_cc()
 
 
 def remove_cc(text):
     r"""Remove control characters (except for \t, \r, \n)."""
-    cc = '[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x80-\x9f]'
-    return re.sub(cc, '', text)
+    return CC.sub('', text)
 
 
 def sanitize_entity(text):
@@ -81,8 +99,8 @@ def sanitize(text):
     """Remove control characters, drop HTML tags, etc."""
     if type(text) != str:
         return text
-    text = remove_cc(text)
     text = sanitize_entity(text)
+    text = remove_cc(text)
     text = html2text(text)
     if isna(text) or not isvalid(text):
         return None
